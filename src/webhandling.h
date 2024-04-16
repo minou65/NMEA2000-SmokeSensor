@@ -14,6 +14,7 @@
 #include <IotWebConfESP32HTTPUpdateServer.h>
 #include <DNSServer.h>
 #include <N2kTimer.h>
+#include "N2kAlerts.h"
 
 #define STRING_LEN 60
 #define NUMBER_LEN 5
@@ -85,6 +86,82 @@ private:
     char sourceID[STRING_LEN];
 };
 
+static char ThresholdMethodValues[][STRING_LEN] = {
+    "0",
+    "1",
+    "2"
+};
+
+static char ThresholdMethodNames[][STRING_LEN] = {
+    "equal",
+    "lower than",
+    "greater than"
+};
+
+static char SensorTypeValues[][STRING_LEN] = {
+	"0",
+	"1",
+};
+
+static char SensorTypeNamess[][STRING_LEN] = {
+	"Gas / Smoke",
+	"Flame",
+};
+
+class GasSensor : public iotwebconf::ParameterGroup {
+public:
+
+    GasSensor(const char* id_, const char* lable_) : ParameterGroup(id_, lable_) {
+
+        snprintf(thresholdId, STRING_LEN, "%s-threshold", this->getId());
+        snprintf(methodId, STRING_LEN, "%s-method", this->getId());
+        snprintf(descriptionId, STRING_LEN, "%s-description", this->getId());
+
+        this->addItem(&this->SensorTypeParam);
+        this->addItem(&this->ThresholdParam);
+        this->addItem(&this->MethodParam);
+        this->addItem(&this->DescriptionParam);
+    }
+
+    iotwebconf::SelectParameter SensorTypeParam = iotwebconf::SelectParameter("SensorType", SensorTypeID, SensorTypeValue, STRING_LEN,
+        (char*)SensorTypeValues, (char*)SensorTypeNamess, sizeof(SensorTypeValues) / STRING_LEN, STRING_LEN);
+
+    iotwebconf::NumberParameter ThresholdParam = iotwebconf::NumberParameter("Threshold", thresholdId, thresholdValue, NUMBER_LEN, "400", "100..3300", "min='100' max='3300' step='1'");
+
+    iotwebconf::SelectParameter MethodParam = iotwebconf::SelectParameter("Method", methodId, methodValue, STRING_LEN,
+        (char*)ThresholdMethodValues, (char*)ThresholdMethodNames, sizeof(ThresholdMethodValues) / STRING_LEN, STRING_LEN, "2");
+
+    iotwebconf::TextParameter DescriptionParam = iotwebconf::TextParameter("Alert Description", descriptionId, descriptionValue, STRING_LEN, "Alert");
+
+    void SetSensorValue(const double v) { value = v; };
+    double GetSensorValue() { return value; };
+    uint8_t GetThresholdMethod() { return atoi(methodValue); };
+    uint32_t GetThresholdValue() { return atoi(thresholdValue); };
+
+
+    void setNext(GasSensor* nextGroup) { this->nextGroup = nextGroup; nextGroup->prevGroup = this; };
+    GasSensor* getNext() { return this->nextGroup; };
+
+    tN2kSyncScheduler AlarmScheduler = tN2kSyncScheduler(false, 500, 100);
+
+protected:
+    GasSensor* prevGroup = nullptr;
+    GasSensor* nextGroup = nullptr;
+
+private:
+
+    char SensorTypeID[STRING_LEN];
+	char thresholdId[STRING_LEN];
+	char methodId[STRING_LEN];
+	char descriptionId[STRING_LEN];
+
+    char SensorTypeValue[STRING_LEN];
+	char thresholdValue[NUMBER_LEN];
+	char methodValue[STRING_LEN];
+	char descriptionValue[STRING_LEN];
+
+	double value = 0;
+};
 
 #endif
 

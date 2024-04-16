@@ -38,8 +38,24 @@ HTTPUpdateServer httpUpdater;
 IotWebConf iotWebConf(thingName, &dnsServer, &server, wifiInitialApPassword, CONFIG_VERSION);
 
 NMEAConfig Config = NMEAConfig();
+GasSensor Sensor1 = GasSensor("Sensor1", "Sensor 1");
+GasSensor Sensor2 = GasSensor("Sensor2", "Sensor 2");
+
+iotwebconf::OptionalGroupHtmlFormatProvider optionalGroupHtmlFormatProvider;
 
 void wifiinit() {
+    Serial.println();
+    Serial.println("starting up...");
+
+    iotWebConf.setStatusPin(STATUS_PIN, ON_LEVEL);
+    iotWebConf.setConfigPin(CONFIG_PIN);
+    iotWebConf.setHtmlFormatProvider(&optionalGroupHtmlFormatProvider);
+
+    Sensor1.setNext(&Sensor1);
+
+    iotWebConf.addParameterGroup(&Config);
+    iotWebConf.addParameterGroup(&Sensor1);
+    iotWebConf.addParameterGroup(&Sensor2);
 
     // -- Define how to handle updateServer calls.
     iotWebConf.setupUpdateServer(
@@ -61,7 +77,7 @@ void wifiinit() {
     server.on("/config", [] { iotWebConf.handleConfig(); });
     server.onNotFound([]() { iotWebConf.handleNotFound(); });
 
-    Serial.println("Ready.");
+    Serial.println("ready.");
 
 }
 

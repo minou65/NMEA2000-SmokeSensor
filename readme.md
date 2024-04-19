@@ -67,6 +67,7 @@ Sequence identifier. In most cases you can use just 255 for SID. The sequence id
 
 
 
+
 ## WiFi
 
 ### Default Password

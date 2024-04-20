@@ -17,6 +17,12 @@
     - [NMEA 2000 Settings](#nmea-2000-settings)
       - [Instance](#instance)
       - [SID](#sid)
+    - [Sensor](#sensor)
+      - [Sensor Type](#sensor-type)
+      - [Threshold](#threshold)
+      - [Methode](#methode)
+      - [Location](#location)
+      - [Alert Message](#alert-message)
   - [WiFi](#wifi)
     - [Default Password](#default-password)
       - [Default IP address](#default-ip-address)
@@ -30,8 +36,10 @@
 This smoke and flame sensor is capable of detecting and measuring smoke and fire. Fire is detected on infrared elvel emited from the flames. Depending on the gas sensor used, different gases can be detected for more information see [Gas / Smoke sensor](#gas--smoke-sensor)
 
 ## Disclamier
+```
 This device does not replace a professional device in any way. In particular, I decline any guarantee or liability should an accident or damage occur!
 Every effort should be made to prevent a fire from starting.
+```
 
 ## NMEA 2000
 The device sends the following PGN's
@@ -48,7 +56,9 @@ The Software has been created using Visual Studio with the addon Visual Micro. I
 ## Gas / Smoke sensor
 Gas sensors play a vital role in various industries and applications, ensuring safety and enabling efficient monitoring of gas concentrations. Among the popular gas sensor modules available in the market, the MQ Gas Sensor Module Series stands out as a reliable and versatile option.
 
+```
 :warning: The sensors require a lot of energy for heating. The Vin pin may not provide enough voltage to operate the sensor. 
+```
 
 ### MQ-2 Gas Sensor Module:
 The MQ-2 gas sensor module is primarily designed for detecting and measuring LPG, propane, butane, methane, alcohol, hydrogen, and smoke concentrations in the air.
@@ -75,13 +85,37 @@ This should be unique at least on one device. May be best to have it unique over
 #### SID
 Sequence identifier. In most cases you can use just 255 for SID. The sequence identifier field is used to tie different PGNs data together to same sampling or calculation time.
 
+### Sensor
+#### Sensor Type
+What type of sensor is used
+- Gas / Smoke
+- Flame
 
+#### Threshold
+Value used to compare with the measured value
 
+#### Methode
+Method with which the measured value is compared with the threshold value
 
+| Methode | Description |
+| --- | --- |
+| equal | The measured and threshold values must be the same |
+| lower than | The measured value must be lower than the threshold value |
+| greater than | The measured value must be greater than the threshold value |
 
+#### Location
+Location where the sensor is mounted
+```
+Engine room 
+```
+
+#### Alert Message
+Enter an alarm message here. This is sent via the NEMA network in the event of an alert
+```
+Smoke detected in the engine room
+```
 
 ## WiFi
-
 ### Default Password
 When not connected to an AP the default password is 123456789
 

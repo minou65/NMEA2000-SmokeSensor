@@ -27,7 +27,7 @@ const char thingName[] = "NMEA2000-SmokeSensor";
 const char wifiInitialApPassword[] = "123456789";
 
 // -- Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "A1"
+#define CONFIG_VERSION "A2"
 
 // -- When CONFIG_PIN is pulled to ground on startup, the Thing will use the initial
 //      password to buld an AP. (E.g. in case of lost password)
@@ -72,7 +72,7 @@ public:
     }
 
 private:
-    iotwebconf::NumberParameter InstanceParam = iotwebconf::NumberParameter("Instance", instanceID, InstanceValue, NUMBER_LEN, "255", "1..255", "min='1' max='254' step='1'");
+    iotwebconf::NumberParameter InstanceParam = iotwebconf::NumberParameter("Instance", instanceID, InstanceValue, NUMBER_LEN, "1", "1..255", "min='1' max='254' step='1'");
     iotwebconf::NumberParameter SIDParam = iotwebconf::NumberParameter("SID", sidID, SIDValue, NUMBER_LEN, "255", "1..255", "min='1' max='255' step='1'");
     iotwebconf::NumberParameter SourceParam = iotwebconf::NumberParameter("Source", sourceID, SourceValue, NUMBER_LEN, "22", nullptr, nullptr);
 
@@ -100,12 +100,12 @@ static char ThresholdMethodNames[][STRING_LEN] = {
 
 static char SensorTypeValues[][STRING_LEN] = {
 	"0",
-	"1",
+	"1"
 };
 
-static char SensorTypeNamess[][STRING_LEN] = {
+static char SensorTypeNames[][STRING_LEN] = {
 	"Gas / Smoke",
-	"Flame",
+	"Flame"
 };
 
 class GasSensor : public iotwebconf::ParameterGroup {
@@ -113,36 +113,49 @@ public:
 
     GasSensor(const char* id_, const char* lable_) : ParameterGroup(id_, lable_) {
 
+        snprintf(SensorTypeID, STRING_LEN, "%s-sensortype", this->getId());
         snprintf(thresholdId, STRING_LEN, "%s-threshold", this->getId());
         snprintf(methodId, STRING_LEN, "%s-method", this->getId());
         snprintf(descriptionId, STRING_LEN, "%s-description", this->getId());
+        snprintf(locationId, STRING_LEN, "%s-location", this->getId());
 
         this->addItem(&this->SensorTypeParam);
         this->addItem(&this->ThresholdParam);
         this->addItem(&this->MethodParam);
+        this->addItem(&this->LocationParam);
         this->addItem(&this->DescriptionParam);
     }
 
     iotwebconf::SelectParameter SensorTypeParam = iotwebconf::SelectParameter("SensorType", SensorTypeID, SensorTypeValue, STRING_LEN,
-        (char*)SensorTypeValues, (char*)SensorTypeNamess, sizeof(SensorTypeValues) / STRING_LEN, STRING_LEN);
+        (char*)SensorTypeValues, (char*)SensorTypeNames, sizeof(SensorTypeValues) / STRING_LEN, STRING_LEN);
 
     iotwebconf::NumberParameter ThresholdParam = iotwebconf::NumberParameter("Threshold", thresholdId, thresholdValue, NUMBER_LEN, "400", "100..3300", "min='100' max='3300' step='1'");
 
     iotwebconf::SelectParameter MethodParam = iotwebconf::SelectParameter("Method", methodId, methodValue, STRING_LEN,
         (char*)ThresholdMethodValues, (char*)ThresholdMethodNames, sizeof(ThresholdMethodValues) / STRING_LEN, STRING_LEN, "2");
 
-    iotwebconf::TextParameter DescriptionParam = iotwebconf::TextParameter("Alert Description", descriptionId, descriptionValue, STRING_LEN, "Alert");
+    iotwebconf::TextParameter LocationParam = iotwebconf::TextParameter("Location", locationId, locationValue, STRING_LEN, "Location");
+    iotwebconf::TextParameter DescriptionParam = iotwebconf::TextParameter("Alert message", descriptionId, descriptionValue, STRING_LEN, "Alert");
 
     void SetSensorValue(const double v) { value = v; };
-    double GetSensorValue() { return value; };
-    uint8_t GetThresholdMethod() { return atoi(methodValue); };
-    uint32_t GetThresholdValue() { return atoi(thresholdValue); };
+    double GetSensorValue() const { return value; };
+    uint8_t GetThresholdMethod() const { return atoi(methodValue); };
+    uint32_t GetThresholdValue() const { return atoi(thresholdValue); };
+    char* GetSensorType() const { return SensorTypeNames[atoi(SensorTypeValue)]; };
 
 
     void setNext(GasSensor* nextGroup) { this->nextGroup = nextGroup; nextGroup->prevGroup = this; };
     GasSensor* getNext() { return this->nextGroup; };
 
     tN2kSyncScheduler AlarmScheduler = tN2kSyncScheduler(false, 500, 100);
+    tN2kSyncScheduler TextAlarmScheduler = tN2kSyncScheduler(false, 10000, 2000);
+    tN2kAlert Alert = tN2kAlert(N2kts_AlertTypeCaution, N2kts_AlertCategoryTechnical, 100, N2kts_AlertTriggerAuto, 100, N2kts_AlertNo, N2kts_AlertYes);
+
+    char SensorTypeValue[STRING_LEN];
+    char thresholdValue[NUMBER_LEN];
+    char methodValue[STRING_LEN];
+    char descriptionValue[STRING_LEN];
+    char locationValue[STRING_LEN];
 
 protected:
     GasSensor* prevGroup = nullptr;
@@ -154,14 +167,14 @@ private:
 	char thresholdId[STRING_LEN];
 	char methodId[STRING_LEN];
 	char descriptionId[STRING_LEN];
+    char locationId[STRING_LEN];
 
-    char SensorTypeValue[STRING_LEN];
-	char thresholdValue[NUMBER_LEN];
-	char methodValue[STRING_LEN];
-	char descriptionValue[STRING_LEN];
 
 	double value = 0;
 };
+
+extern GasSensor Sensor1;
+extern GasSensor Sensor2;
 
 #endif
 

@@ -119,6 +119,8 @@ void setup() {
 	NMEA2000.ExtendTransmitMessages(AlarmDeviceDeviceMessages);
 
 	NMEA2000.Open();
+
+	InitAlertsystem();
 }
 
 void InitDeviceId() {
@@ -134,12 +136,60 @@ void InitDeviceId() {
 	}
 }
 
+void UpdateAlertSystem() {
+	if (NMEA2000.IsOpen()) InitAlertsystem();
+}
+
+void InitAlertsystem() {
+	GasSensor* _sensor = &Sensor1;
+	uint8_t _index = 0;
+	while (_sensor != nullptr) {
+		_sensor->Alert.SetAlertSystem(_index, gN2KInstance + _index, NMEA2000.GetN2kSource(), N2kts_AlertLanguageEnglishUS, _sensor->descriptionValue, _sensor->locationValue);
+
+		_sensor->Alert.SetAlertDataSource(gN2KInstance + _index, 0, NMEA2000.GetN2kSource());
+		_sensor->Alert.SetAlertThreshold(t2kNAlertThresholdMethod(_sensor->GetThresholdMethod()), 0, _sensor->GetThresholdValue());
+
+		_index++;
+		_sensor = (GasSensor*)_sensor->getNext();
+	}
+}
+
+void SendAlarm() {
+	tN2kMsg N2kMsg;
+
+	GasSensor* _sensor = &Sensor1;
+	while (_sensor != nullptr) {
+		if (_sensor->AlarmScheduler.IsTime()) {
+			_sensor->AlarmScheduler.UpdateNextTime();
+			_sensor->Alert.SetN2kAlert(N2kMsg);
+			NMEA2000.SendMsg(N2kMsg);
+		}
+		_sensor = (GasSensor*)_sensor->getNext();
+	}
+}
+
+void SendAlarmText() {
+	tN2kMsg N2kMsg;
+
+	GasSensor* _sensor = &Sensor1;
+	while (_sensor != nullptr) {
+		if (_sensor->TextAlarmScheduler.IsTime()) {
+			_sensor->TextAlarmScheduler.UpdateNextTime();
+
+			_sensor->Alert.SetN2kAlertText(N2kMsg);
+			NMEA2000.SendMsg(N2kMsg);
+		}
+		_sensor = (GasSensor*)_sensor->getNext();
+	}
+}
+
 // the loop function runs over and over again until power down or reset
 void loop() {
 	if (smokeSensorTimer.repeat()) {
 		uint32_t smokeSensorValue = analogRead(SmokeSensorPin);
 
 		Serial.printf("SmokeSensorValue = %d\n", smokeSensorValue);
+		Sensor1.SetSensorValue(smokeSensorValue);
 
 		if (smokeSensorValue > smokeSensorTreashold) {
 			Serial.println("Smoke detected!");
@@ -150,11 +200,15 @@ void loop() {
 		uint32_t flameSensorValue = analogRead(FalmeSensorPin);
 
 		Serial.printf("FlameSensorValue = %d\n", flameSensorValue);
+		Sensor2.SetSensorValue(flameSensorValue);
 
 		if (flameSensorValue > flameSensorTreashold) {
 			Serial.println("Flame detected!");
 		}
 	}
+
+	SendAlarm();
+	SendAlarmText();
 
 	NMEA2000.ParseMessages();
 	wifiloop();

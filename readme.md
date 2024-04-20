@@ -4,6 +4,7 @@
 - [NMEA2000 Smoke sensor](#nmea2000-smoke-sensor)
   - [Table of contents](#table-of-contents)
   - [Description](#description)
+  - [Disclamier](#disclamier)
   - [NMEA 2000](#nmea-2000)
   - [Librarys](#librarys)
   - [Gas / Smoke sensor](#gas--smoke-sensor)
@@ -28,11 +29,9 @@
 ## Description
 This smoke and flame sensor is capable of detecting and measuring smoke and fire. Fire is detected on infrared elvel emited from the flames. Depending on the gas sensor used, different gases can be detected for more information see [Gas / Smoke sensor](#gas--smoke-sensor)
 
-``
-:warning:
+## Disclamier
 This device does not replace a professional device in any way. In particular, I decline any guarantee or liability should an accident or damage occur!
 Every effort should be made to prevent a fire from starting.
-``
 
 ## NMEA 2000
 The device sends the following PGN's

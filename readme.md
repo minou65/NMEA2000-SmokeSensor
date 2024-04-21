@@ -56,7 +56,8 @@ The Software has been created using Visual Studio with the addon Visual Micro. I
 ## Gas / Smoke sensor
 Gas sensors play a vital role in various industries and applications, ensuring safety and enabling efficient monitoring of gas concentrations. Among the popular gas sensor modules available in the market, the MQ Gas Sensor Module Series stands out as a reliable and versatile option.
 
-:warning: The sensors require a lot of energy for heating. The Vin pin may not provide enough voltage to operate the sensor. 
+[!WARNING]
+The sensors require a lot of energy for heating. The Vin pin may not provide enough voltage to operate the sensor. 
 
 ### MQ-2 Gas Sensor Module:
 The MQ-2 gas sensor module is primarily designed for detecting and measuring LPG, propane, butane, methane, alcohol, hydrogen, and smoke concentrations in the air.

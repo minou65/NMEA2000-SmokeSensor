@@ -20,6 +20,7 @@
 #include <IotWebConfESP32HTTPUpdateServer.h>
 #include "common.h"
 #include "webhandling.h"
+#include "favicon.h"
 
 #define HTML_Start_Doc "<!DOCTYPE html>\
     <html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>\
@@ -38,6 +39,7 @@
 
 // -- Method declarations.
 void handleRoot();
+void handleFavIcon();
 void convertParams();
 extern void UpdateAlertSystem();
 
@@ -90,6 +92,7 @@ void wifiinit() {
 
     // -- Set up required URL handlers on the web server.
     server.on("/", handleRoot);
+    server.on("/favicon.ico", [] { handleFavIcon(); });
     server.on("/config", [] { iotWebConf.handleConfig(); });
     server.onNotFound([]() { iotWebConf.handleNotFound(); });
 
@@ -124,6 +127,10 @@ void convertParams() {
 void configSaved() {
     convertParams();
     gParamsChanged = true;
+}
+
+void handleFavIcon() {
+    server.send_P(200, "image/x-icon", favicon_bits, sizeof(favicon_bits));
 }
 
 void handleRoot() {

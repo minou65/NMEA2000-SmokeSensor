@@ -59,7 +59,15 @@ NMEAConfig Config = NMEAConfig();
 GasSensor Sensor1 = GasSensor("Sensor1", "Sensor 1");
 GasSensor Sensor2 = GasSensor("Sensor2", "Sensor 2");
 
-iotwebconf::OptionalGroupHtmlFormatProvider optionalGroupHtmlFormatProvider;
+class CustomHtmlFormatProvider : public iotwebconf::OptionalGroupHtmlFormatProvider {
+protected:
+    virtual String getFormEnd() {
+        String _s = OptionalGroupHtmlFormatProvider::getFormEnd();
+        _s += F("</br>Return to <a href='/'>home page</a>.");
+        return _s;
+    }
+};
+CustomHtmlFormatProvider customHtmlFormatProvider;
 
 void wifiinit() {
     Serial.println();
@@ -67,7 +75,7 @@ void wifiinit() {
 
     iotWebConf.setStatusPin(STATUS_PIN, ON_LEVEL);
     iotWebConf.setConfigPin(CONFIG_PIN);
-    iotWebConf.setHtmlFormatProvider(&optionalGroupHtmlFormatProvider);
+    iotWebConf.setHtmlFormatProvider(&customHtmlFormatProvider);
 
     Sensor1.setNext(&Sensor2);
 

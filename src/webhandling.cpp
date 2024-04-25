@@ -36,8 +36,35 @@
 #define HTML_End_Doc "</html>";
 #define HTML_Fieldset_Legend "<legend>{l}</legend>"
 #define HTML_Table_Row "<tr><td>{n}</td><td>{v}</td></tr>";
+#define HTML_JAVA_Script \
+"<script>\n \
+    // get intial data straight away \n \
+    requestData(); \n \
+\n \
+    // request data updates every milliseconds\n \
+    setInterval(requestData, 5000);\n \
+\n \
+    function requestData() {\n \
+		var xhttp = new XMLHttpRequest();\n \
+		xhttp.onreadystatechange = function() {\n \
+			if (this.readyState == 4 && this.status == 200) {\n \
+				var json = JSON.parse(this.responseText);\n \
+				updateData(json);\n \
+			}\n \
+		};\n \
+        xhttp.open('GET', 'data', true);\n \
+		xhttp.send();\n \
+	}\n \
+\n \
+    function updateData(jsonData) { \n \
+        document.getElementById('sensor1').innerHTML = jsonData.sensor1;\n \
+		document.getElementById('sensor2').innerHTML = jsonData.sensor2;\n \
+	}\n \
+</script>\
+";
 
 // -- Method declarations.
+void handleData();
 void handleRoot();
 void handleFavIcon();
 void convertParams();
@@ -102,6 +129,7 @@ void wifiinit() {
     server.on("/", handleRoot);
     server.on("/favicon.ico", [] { handleFavIcon(); });
     server.on("/config", [] { iotWebConf.handleConfig(); });
+    server.on("/data", HTTP_GET, []() { handleData(); });
     server.onNotFound([]() { iotWebConf.handleNotFound(); });
 
     Serial.println("ready.");
@@ -141,6 +169,22 @@ void handleFavIcon() {
     server.send_P(200, "image/x-icon", favicon_bits, sizeof(favicon_bits));
 }
 
+void handleData() {
+    String _repsone = "{";
+    GasSensor* _sensor = &Sensor1;
+    uint8_t _i = 1;
+    while (_sensor != nullptr) {
+        _repsone += "\"sensor" + String(_i) + "\":\"" + _sensor->GetSensorValue() + "\"";
+        _sensor = (GasSensor*)_sensor->getNext();
+        _i++;
+        if (_sensor != nullptr) {
+			_repsone += ",";
+		}
+    }
+    _repsone += "}";
+	server.send(200, "text/plain", _repsone);
+}
+
 void handleRoot() {
     // -- Let IotWebConf test and handle captive portal requests.
     if (iotWebConf.handleCaptivePortal())
@@ -159,9 +203,8 @@ void handleRoot() {
     page += ".dot-green{height: 12px; width: 12px; background-color: green; border-radius: 50%; display: inline-block; }";
 
     page += "</style>";
-
-    page += "<meta http-equiv=refresh content=30 />";
     page += HTML_Start_Body;
+    page += HTML_JAVA_Script;
     page += "<table border=0 align=center>";
     page += "<tr><td>";
 
@@ -172,9 +215,11 @@ void handleRoot() {
     page += HTML_Start_Table;
 
     GasSensor* _sensor = &Sensor1;
+    uint8_t _i = 1;
     while (_sensor != nullptr) {
-        page += "<tr><td align=left>" + String(_sensor->locationValue) + ":</td><td>" + _sensor->GetSensorValue() + "</td></tr>";
+        page += "<tr><td align=left>" + String(_sensor->locationValue) + ":</td><td><span id='sensor" + String(_i) + "'>0</span></td></tr>";
         _sensor = (GasSensor*)_sensor->getNext();
+        _i++;
     }
 
     page += HTML_End_Table;

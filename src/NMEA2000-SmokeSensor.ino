@@ -10,7 +10,7 @@
 #include "webhandling.h"
 #include "neotimer.h"
 
-char Version[] = "0.0.0.2 (2024-04-14)"; // Manufacturer's Software version code
+char Version[] = "0.0.0.3 (2024-04-25)"; // Manufacturer's Software version code
 
 #define SmokeSensorPin A0
 #define FalmeSensorPin A3

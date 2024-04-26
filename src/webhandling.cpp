@@ -21,6 +21,7 @@
 #include "common.h"
 #include "webhandling.h"
 #include "favicon.h"
+#include "IotWebRoot.h"
 
 #define HTML_Start_Doc "<!DOCTYPE html>\
     <html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>\
@@ -185,71 +186,74 @@ void handleData() {
 	server.send(200, "text/plain", _repsone);
 }
 
+
+class MyHtmlRootFormatProvider : public HtmlRootFormatProvider {
+protected:
+    virtual String getStyleInner() {
+		String _s = HtmlRootFormatProvider::getStyleInner();
+		_s += F(".dot-grey{height: 12px; width: 12px; background-color: #bbb; border-radius: 50%; display: inline-block; }\n");
+		_s += F(".dot-green{height: 12px; width: 12px; background-color: green; border-radius: 50%; display: inline-block; }\n");
+		return _s;
+	}
+
+    virtual String getScriptInner() { 
+        String _s = HtmlRootFormatProvider::getScriptInner();
+		_s += F("function updateData(jsonData) {\n");
+		_s += F("   document.getElementById('sensor1').innerHTML = jsonData.sensor1;\n");
+		_s += F("   document.getElementById('sensor2').innerHTML = jsonData.sensor2;\n");
+		_s += F("}\n");
+        _s.replace("{millisecond}", "5000");
+		return _s;
+    }
+};
+
 void handleRoot() {
     // -- Let IotWebConf test and handle captive portal requests.
-    if (iotWebConf.handleCaptivePortal())
-    {
+    if (iotWebConf.handleCaptivePortal()){
         // -- Captive portal request were already served.
         return;
     }
 
-    String page = HTML_Start_Doc;
+    MyHtmlRootFormatProvider rootFormatProvider;
 
-    page.replace("{v}", iotWebConf.getThingName());
-    page += "<style>";
-    page += ".de{background-color:#ffaaaa;} .em{font-size:0.8em;color:#bb0000;padding-bottom:0px;} .c{text-align: center;} div,input,select{padding:5px;font-size:1em;} input{width:95%;} select{width:100%} input[type=checkbox]{width:auto;scale:1.5;margin:10px;} body{text-align: center;font-family:verdana;} button{border:0;border-radius:0.3rem;background-color:#16A1E7;color:#fff;line-height:2.4rem;font-size:1.2rem;width:100%;} fieldset{border-radius:0.3rem;margin: 0px;}";
-    // page.replace("center", "left");
-    page += ".dot-grey{height: 12px; width: 12px; background-color: #bbb; border-radius: 50%; display: inline-block; }";
-    page += ".dot-green{height: 12px; width: 12px; background-color: green; border-radius: 50%; display: inline-block; }";
+    String _response = "";
+    _response += rootFormatProvider.getHtmlHead(iotWebConf.getThingName());
+    _response += rootFormatProvider.getHtmlStyle();
+    _response += rootFormatProvider.getHtmlHeadEnd();
+    _response += rootFormatProvider.getHtmlScript();
 
-    page += "</style>";
-    page += HTML_Start_Body;
-    page += HTML_JAVA_Script;
-    page += "<table border=0 align=center>";
-    page += "<tr><td>";
+    _response += rootFormatProvider.getHtmlTable();
+    _response += rootFormatProvider.getHtmlTableRow() + rootFormatProvider.getHtmlTableCol();
 
-    page += HTML_Start_Fieldset;
-    page += HTML_Fieldset_Legend;
-
-    page.replace("{l}", "Sensors");
-    page += HTML_Start_Table;
-
+    _response += rootFormatProvider.getHtmlFieldset("Sensors");
+    _response += rootFormatProvider.getHtmlTable();
     GasSensor* _sensor = &Sensor1;
     uint8_t _i = 1;
     while (_sensor != nullptr) {
-        page += "<tr><td align=left>" + String(_sensor->locationValue) + ":</td><td><span id='sensor" + String(_i) + "'>0</span></td></tr>";
+        _response += rootFormatProvider.getHtmlTableRowSpan(_sensor->locationValue, "0", "sensor" + String(_i));
         _sensor = (GasSensor*)_sensor->getNext();
         _i++;
     }
+    _response += rootFormatProvider.getHtmlTableEnd();
+    _response += rootFormatProvider.getHtmlFieldsetEnd();
 
-    page += HTML_End_Table;
-    page += HTML_End_Fieldset;
+    _response += rootFormatProvider.getHtmlFieldset("Network");
+    _response += rootFormatProvider.getHtmlTable();
+    _response += rootFormatProvider.getHtmlTableRowText("MAC Address", WiFi.macAddress());
+    _response += rootFormatProvider.getHtmlTableRowText("IP Address", WiFi.localIP().toString().c_str());
+    _response += rootFormatProvider.getHtmlTableEnd();
+    _response += rootFormatProvider.getHtmlFieldsetEnd();
 
-    page += HTML_Start_Fieldset;
-    page += HTML_Fieldset_Legend;
+    _response += rootFormatProvider.addNewLine(2);
 
-    page.replace("{l}", "Network");
-    page += HTML_Start_Table;
+    _response += rootFormatProvider.getHtmlTable();
+    _response += rootFormatProvider.getHtmlTableRowText("Go to <a href = 'config'>configure page</a> to change configuration.");
+    _response += rootFormatProvider.getHtmlTableRowText(rootFormatProvider.getHtmlVersion(Version));
+    _response += rootFormatProvider.getHtmlTableEnd();
 
-    page += "<tr><td align=left>MAC Address:</td><td>" + String(WiFi.macAddress()) + "</td></tr>";
-    page += "<tr><td align=left>IP Address:</td><td>" + String(WiFi.localIP().toString().c_str()) + "</td></tr>";
+    _response += rootFormatProvider.getHtmlTableColEnd() + rootFormatProvider.getHtmlTableRowEnd();
+    _response += rootFormatProvider.getHtmlTableEnd();
+    _response += rootFormatProvider.getHtmlEnd();
 
-    page += HTML_End_Table;
-    page += HTML_End_Fieldset;
-
-
-    page += "<br>";
-    page += "<br>";
-
-    page += HTML_Start_Table;
-    page += "<tr><td align=left>Go to <a href = 'config'>configure page</a> to change configuration.</td></tr>";
-    // page += "<tr><td align=left>Go to <a href='setruntime'>runtime modification page</a> to change runtime data.</td></tr>";
-    page += "<tr><td><font size=1>Version: " + String(Version) + "</font></td></tr>";
-    page += HTML_End_Table;
-    page += HTML_End_Body;
-
-    page += HTML_End_Doc;
-
-
-    server.send(200, "text/html", page);
+    server.send(200, "text/html", _response);
 }

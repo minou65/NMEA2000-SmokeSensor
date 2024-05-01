@@ -27,7 +27,7 @@ const char IOTWEBROOT_HTML_TABLE_ROW_TEXT[] PROGMEM = "<tr><td align=\"left\">{n
 const char IOTWEBROOT_HTML_TABLE_ROW_SPAN[] PROGMEM = "<tr><td align=\"left\">{n}</td><td align=\"left\"><span id=\"{id}\">{v}</span></td></tr>\n";
 const char IOTWEBROOT_HTML_SCRIPT_INNNER[] PROGMEM = "\n";
 const char IOTWEBROOT_HTML_CONFIG_VER[] PROGMEM = "<div style='font-size: .6em;'>Version '{v}'</div>\n";
-const char IOTWEBROOT_HTML_SCRIPT_INNER_JS_REQUESTDATA[] PROGMEM = "requestData();\nsetInterval(requestData, {millisecond});\nfunction requestData() {\nvar xhttp = new XMLHttpRequest();\nxhttp.onreadystatechange = function() {\nif (this.readyState == 4 && this.status == 200) {\nvar json = JSON.parse(this.responseText);\nupdateData(json);\n}\n};\nxhttp.open('GET', 'data', true);\nxhttp.send();\n}\n";
+const char IOTWEBROOT_HTML_SCRIPT_INNER_JS_REQUESTDATA[] PROGMEM = "requestData();\nsetInterval(requestData, {millisecond});\nfunction requestData() {\nvar xhttp = new XMLHttpRequest();\nxhttp.onreadystatechange = function() {\nif (this.readyState == 4 && this.status == 200) {\nvar json = JSON.parse(this.responseText);\nupdateData(json);\n};\n};\nxhttp.open('GET', 'data', true);\nxhttp.send();\n}\n";
 
 class HtmlRootFormatProvider {
 public:

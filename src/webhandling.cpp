@@ -172,6 +172,7 @@ void handleFavIcon() {
 
 void handleData() {
     String _repsone = "{";
+    _repsone += "\"rssi\":\"" + String(WiFi.RSSI()) + "\",";
     GasSensor* _sensor = &Sensor1;
     uint8_t _i = 1;
     while (_sensor != nullptr) {
@@ -199,6 +200,7 @@ protected:
     virtual String getScriptInner() { 
         String _s = HtmlRootFormatProvider::getScriptInner();
 		_s += F("function updateData(jsonData) {\n");
+        _s += F("   document.getElementById('RSSIValue').innerHTML = jsonData.rssi + \"dBm\" \n");
 		_s += F("   document.getElementById('sensor1').innerHTML = jsonData.sensor1;\n");
 		_s += F("   document.getElementById('sensor2').innerHTML = jsonData.sensor2;\n");
 		_s += F("}\n");
@@ -224,6 +226,12 @@ void handleRoot() {
 
     _response += rootFormatProvider.getHtmlTable();
     _response += rootFormatProvider.getHtmlTableRow() + rootFormatProvider.getHtmlTableCol();
+
+    _response += F("<fieldset align=left style=\"border: 1px solid\">\n");
+    _response += F("<table border=\"0\" align=\"center\" width=\"100%\">\n");
+    _response += F("<tr><td align=\"left\"> </td></td><td align=\"right\"><span id=\"RSSIValue\">-100</span></td></tr>\n");
+    _response += rootFormatProvider.getHtmlTableEnd();
+    _response += rootFormatProvider.getHtmlFieldsetEnd();
 
     _response += rootFormatProvider.getHtmlFieldset("Sensors");
     _response += rootFormatProvider.getHtmlTable();

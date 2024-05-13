@@ -10,7 +10,9 @@
 #include "webhandling.h"
 #include "neotimer.h"
 
-char Version[] = "0.0.0.3 (2024-04-25)"; // Manufacturer's Software version code
+char Version[] = "0.0.0.4 (2024-05-13)"; // Manufacturer's Software version code
+
+bool debugMode = true;
 
 #define SmokeSensorPin A0
 #define FalmeSensorPin A3
@@ -188,22 +190,24 @@ void loop() {
 	if (smokeSensorTimer.repeat()) {
 		uint32_t smokeSensorValue = analogRead(SmokeSensorPin);
 
-		Serial.printf("SmokeSensorValue = %d\n", smokeSensorValue);
+		DEBUG_PRINTF("Sensor 1 = %d\n", smokeSensorValue);
+		WebSerial.printf("Sensor 1 = %d\n", smokeSensorValue);
 		Sensor1.SetSensorValue(smokeSensorValue);
 
 		if (smokeSensorValue > smokeSensorTreashold) {
-			Serial.println("Smoke detected!");
+			DEBUG_PRINTLN("Smoke detected!");
 		}
 	}
 
 	if (flameSensorTimer.repeat()) {
 		uint32_t flameSensorValue = analogRead(FalmeSensorPin);
 
-		Serial.printf("FlameSensorValue = %d\n", flameSensorValue);
+		DEBUG_PRINTF("Sensor 2 = %d\n", flameSensorValue);
+		WebSerial.printf("Sensor 2 = %d\n", flameSensorValue);
 		Sensor2.SetSensorValue(flameSensorValue);
 
 		if (flameSensorValue > flameSensorTreashold) {
-			Serial.println("Flame detected!");
+			DEBUG_PRINTLN("Flame detected!");
 		}
 	}
 

@@ -12,62 +12,21 @@
 //needed for library
 
 #include <DNSServer.h>
-#include <iostream>
-#include <string.h>
-
 #include <IotWebConf.h>
-#include <IotWebConfTParameter.h>
-#include <IotWebConfESP32HTTPUpdateServer.h>
+#include <IotWebConfAsyncClass.h>
+#include <IotWebConfAsyncUpdateServer.h>
+#include <IotWebRoot.h>
+#include <AsyncJson.h>
+#include <ArduinoJson.h>
+
 #include "common.h"
 #include "webhandling.h"
 #include "favicon.h"
 #include "IotWebRoot.h"
 
-#define HTML_Start_Doc "<!DOCTYPE html>\
-    <html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>\
-    <title>{v}</title>\
-";
-
-#define HTML_Start_Body "</head><body>";
-#define HTML_Start_Fieldset "<fieldset align=left style=\"border: 1px solid\">";
-#define HTML_Start_Table "<table border=0 align=center>";
-#define HTML_End_Table "</table>";
-#define HTML_End_Fieldset "</fieldset>";
-#define HTML_End_Body "</body>";
-#define HTML_End_Doc "</html>";
-#define HTML_Fieldset_Legend "<legend>{l}</legend>"
-#define HTML_Table_Row "<tr><td>{n}</td><td>{v}</td></tr>";
-#define HTML_JAVA_Script \
-"<script>\n \
-    // get intial data straight away \n \
-    requestData(); \n \
-\n \
-    // request data updates every milliseconds\n \
-    setInterval(requestData, 5000);\n \
-\n \
-    function requestData() {\n \
-		var xhttp = new XMLHttpRequest();\n \
-		xhttp.onreadystatechange = function() {\n \
-			if (this.readyState == 4 && this.status == 200) {\n \
-				var json = JSON.parse(this.responseText);\n \
-				updateData(json);\n \
-			}\n \
-		};\n \
-        xhttp.open('GET', 'data', true);\n \
-		xhttp.send();\n \
-	}\n \
-\n \
-    function updateData(jsonData) { \n \
-        document.getElementById('sensor1').innerHTML = jsonData.sensor1;\n \
-		document.getElementById('sensor2').innerHTML = jsonData.sensor2;\n \
-	}\n \
-</script>\
-";
-
 // -- Method declarations.
-void handleData();
-void handleRoot();
-void handleFavIcon();
+void handleData(AsyncWebServerRequest* request);
+void handleRoot(AsyncWebServerRequest* request);
 void convertParams();
 extern void UpdateAlertSystem();
 
@@ -78,10 +37,11 @@ void wifiConnected();
 bool gParamsChanged = true;
 
 DNSServer dnsServer;
-WebServer server(80);
-HTTPUpdateServer httpUpdater;
+AsyncWebServer server(80);
+AsyncWebServerWrapper asyncWebServerWrapper(&server);
+AsyncUpdateServer AsyncUpdater;
 
-IotWebConf iotWebConf(thingName, &dnsServer, &server, wifiInitialApPassword, CONFIG_VERSION);
+IotWebConf iotWebConf(thingName, &dnsServer, &asyncWebServerWrapper, wifiInitialApPassword, CONFIG_VERSION);
 
 NMEAConfig Config = NMEAConfig();
 GasSensor Sensor1 = GasSensor("Sensor1", "Sensor 1");
@@ -111,10 +71,9 @@ void wifiinit() {
     iotWebConf.addParameterGroup(&Sensor1);
     iotWebConf.addParameterGroup(&Sensor2);
 
-    // -- Define how to handle updateServer calls.
     iotWebConf.setupUpdateServer(
-        [](const char* updatePath) { httpUpdater.setup(&server, updatePath); },
-        [](const char* userName, char* password) { httpUpdater.updateCredentials(userName, password); });
+        [](const char* updatePath) { AsyncUpdater.setup(&server, updatePath); },
+        [](const char* userName, char* password) { AsyncUpdater.updateCredentials(userName, password); });
 
     iotWebConf.setConfigSavedCallback(&configSaved);
     iotWebConf.setWifiConnectionCallback(&wifiConnected);
@@ -127,11 +86,26 @@ void wifiinit() {
     convertParams();
 
     // -- Set up required URL handlers on the web server.
-    server.on("/", handleRoot);
-    server.on("/favicon.ico", [] { handleFavIcon(); });
-    server.on("/config", [] { iotWebConf.handleConfig(); });
-    server.on("/data", HTTP_GET, []() { handleData(); });
-    server.onNotFound([]() { iotWebConf.handleNotFound(); });
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) { handleRoot(request); });
+    server.on("/config", HTTP_ANY, [](AsyncWebServerRequest* request) {
+        AsyncWebRequestWrapper asyncWebRequestWrapper(request);
+        iotWebConf.handleConfig(&asyncWebRequestWrapper);
+        }
+    );
+    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest* request) {
+        AsyncWebServerResponse* response = request->beginResponse_P(200, "image/x-icon", favicon_ico, sizeof(favicon_ico));
+        request->send(response);
+        }
+    );
+    server.on("/data", HTTP_GET, [](AsyncWebServerRequest* request) { handleData(request); });
+
+    server.onNotFound([](AsyncWebServerRequest* request) {
+        AsyncWebRequestWrapper asyncWebRequestWrapper(request);
+        iotWebConf.handleNotFound(&asyncWebRequestWrapper);
+        }
+    );
+
+    WebSerial.begin(&server, "/webserial");
 
     Serial.println("ready.");
 
@@ -166,25 +140,22 @@ void configSaved() {
     gParamsChanged = true;
 }
 
-void handleFavIcon() {
-    server.send_P(200, "image/x-icon", favicon_bits, sizeof(favicon_bits));
-}
+void handleData(AsyncWebServerRequest* request) {
 
-void handleData() {
-    String _repsone = "{";
-    _repsone += "\"rssi\":\"" + String(WiFi.RSSI()) + "\",";
-    GasSensor* _sensor = &Sensor1;
-    uint8_t _i = 1;
-    while (_sensor != nullptr) {
-        _repsone += "\"sensor" + String(_i) + "\":\"" + _sensor->GetSensorValue() + "\"";
-        _sensor = (GasSensor*)_sensor->getNext();
-        _i++;
-        if (_sensor != nullptr) {
-			_repsone += ",";
-		}
+    AsyncJsonResponse* response = new AsyncJsonResponse();
+    response->addHeader("Server", "ESP Async Web Server");
+    JsonVariant& json_ = response->getRoot();
+
+	json_["rssi"] = WiFi.RSSI();
+	GasSensor* sensor_ = &Sensor1;
+	uint8_t i_ = 1;
+    while (sensor_ != nullptr) {
+		json_["sensor" + String(i_)] = sensor_->GetSensorValue();
+		sensor_= (GasSensor*)sensor_->getNext();
+		i_++;
     }
-    _repsone += "}";
-	server.send(200, "text/plain", _repsone);
+	response->setLength();
+	request->send(response);
 }
 
 
@@ -209,59 +180,76 @@ protected:
     }
 };
 
-void handleRoot() {
-    // -- Let IotWebConf test and handle captive portal requests.
-    if (iotWebConf.handleCaptivePortal()){
-        // -- Captive portal request were already served.
+void handleRoot(AsyncWebServerRequest* request) {
+    AsyncWebRequestWrapper asyncWebRequestWrapper(request);
+    if (iotWebConf.handleCaptivePortal(&asyncWebRequestWrapper)) {
         return;
     }
 
-    MyHtmlRootFormatProvider rootFormatProvider;
+    std::string content_;
+    MyHtmlRootFormatProvider fp_;
 
-    String _response = "";
-    _response += rootFormatProvider.getHtmlHead(iotWebConf.getThingName());
-    _response += rootFormatProvider.getHtmlStyle();
-    _response += rootFormatProvider.getHtmlHeadEnd();
-    _response += rootFormatProvider.getHtmlScript();
+    content_ += fp_.getHtmlHead(iotWebConf.getThingName()).c_str();
+    content_ += fp_.getHtmlStyle().c_str();
+    content_ += fp_.getHtmlHeadEnd().c_str();
+    content_ += fp_.getHtmlScript().c_str();
+    content_ += fp_.getHtmlTable().c_str();
+    content_ += fp_.getHtmlTableRow().c_str();
+    content_ += fp_.getHtmlTableCol().c_str();
 
-    _response += rootFormatProvider.getHtmlTable();
-    _response += rootFormatProvider.getHtmlTableRow() + rootFormatProvider.getHtmlTableCol();
+	content_ += String(F("<fieldset align=left style=\"border: 1px solid\">\n")).c_str();
+	content_ += String(F("<table border=\"0\" align=\"center\" width=\"100%\">\n")).c_str();
+	content_ += String(F("<tr><td align=\"left\"> </td></td><td align=\"right\"><span id=\"RSSIValue\">-100</span></td></tr>\n")).c_str();
+	content_ += fp_.getHtmlTableEnd().c_str();
+	content_ += fp_.getHtmlFieldsetEnd().c_str();
 
-    _response += F("<fieldset align=left style=\"border: 1px solid\">\n");
-    _response += F("<table border=\"0\" align=\"center\" width=\"100%\">\n");
-    _response += F("<tr><td align=\"left\"> </td></td><td align=\"right\"><span id=\"RSSIValue\">-100</span></td></tr>\n");
-    _response += rootFormatProvider.getHtmlTableEnd();
-    _response += rootFormatProvider.getHtmlFieldsetEnd();
-
-    _response += rootFormatProvider.getHtmlFieldset("Sensors");
-    _response += rootFormatProvider.getHtmlTable();
-    GasSensor* _sensor = &Sensor1;
-    uint8_t _i = 1;
+	content_ += fp_.getHtmlFieldset("Sensors").c_str();
+	content_ += fp_.getHtmlTable().c_str();
+	GasSensor* _sensor = &Sensor1;
+	uint8_t _i = 1;
     while (_sensor != nullptr) {
-        _response += rootFormatProvider.getHtmlTableRowSpan(_sensor->locationValue, "0", "sensor" + String(_i));
-        _sensor = (GasSensor*)_sensor->getNext();
-        _i++;
+		content_ += fp_.getHtmlTableRowSpan(_sensor->locationValue, "0", "sensor" + String(_i)).c_str();
+		_sensor = (GasSensor*)_sensor->getNext();
+		_i++;
     }
-    _response += rootFormatProvider.getHtmlTableEnd();
-    _response += rootFormatProvider.getHtmlFieldsetEnd();
 
-    _response += rootFormatProvider.getHtmlFieldset("Network");
-    _response += rootFormatProvider.getHtmlTable();
-    _response += rootFormatProvider.getHtmlTableRowText("MAC Address", WiFi.macAddress());
-    _response += rootFormatProvider.getHtmlTableRowText("IP Address", WiFi.localIP().toString().c_str());
-    _response += rootFormatProvider.getHtmlTableEnd();
-    _response += rootFormatProvider.getHtmlFieldsetEnd();
+	content_ += fp_.getHtmlTableEnd().c_str();
+	content_ += fp_.getHtmlFieldsetEnd().c_str();
 
-    _response += rootFormatProvider.addNewLine(2);
+	content_ += fp_.getHtmlFieldset("Network").c_str();
+	content_ += fp_.getHtmlTable().c_str();
+	content_ += fp_.getHtmlTableRowText("MAC Address", WiFi.macAddress()).c_str();
+	content_ += fp_.getHtmlTableRowText("IP Address", WiFi.localIP().toString().c_str()).c_str();
+	content_ += fp_.getHtmlTableEnd().c_str();
+	content_ += fp_.getHtmlFieldsetEnd().c_str();
 
-    _response += rootFormatProvider.getHtmlTable();
-    _response += rootFormatProvider.getHtmlTableRowText("Go to <a href = 'config'>configure page</a> to change configuration.");
-    _response += rootFormatProvider.getHtmlTableRowText(rootFormatProvider.getHtmlVersion(Version));
-    _response += rootFormatProvider.getHtmlTableEnd();
+	content_ += fp_.addNewLine(2).c_str();
 
-    _response += rootFormatProvider.getHtmlTableColEnd() + rootFormatProvider.getHtmlTableRowEnd();
-    _response += rootFormatProvider.getHtmlTableEnd();
-    _response += rootFormatProvider.getHtmlEnd();
+	content_ += fp_.getHtmlTable().c_str();
+	content_ += fp_.getHtmlTableRowText("Go to <a href = 'config'>configure page</a> to change configuration.").c_str();
+    content_ += fp_.getHtmlTableRowText("Go to <a href = 'webserial'>sensor monitoring</a> page.").c_str();
+	content_ += fp_.getHtmlTableRowText(fp_.getHtmlVersion(Version)).c_str();
+	content_ += fp_.getHtmlTableEnd().c_str();
 
-    server.send(200, "text/html", _response);
+    content_ += fp_.getHtmlTableColEnd().c_str();
+    content_ += fp_.getHtmlTableRowEnd().c_str();
+    content_ += fp_.getHtmlTableEnd().c_str();
+    content_ += fp_.getHtmlEnd().c_str();
+
+    AsyncWebServerResponse* response = request->beginChunkedResponse("text/html", [content_](uint8_t* buffer, size_t maxLen, size_t index) -> size_t {
+
+        std::string chunk_ = "";
+        size_t len_ = min(content_.length() - index, maxLen);
+        if (len_ > 0) {
+            chunk_ = content_.substr(index, len_);
+            chunk_.copy((char*)buffer, chunk_.length());
+        }
+        if (index + len_ <= content_.length())
+            return chunk_.length();
+        else
+            return 0;
+
+        });
+    response->addHeader("Server", "ESP Async Web Server");
+    request->send(response);
 }

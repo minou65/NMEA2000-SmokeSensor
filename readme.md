@@ -49,9 +49,12 @@ The device sends the following PGN's
 
 ## Librarys
 The Software has been created using Visual Studio with the addon Visual Micro. In order to build it you als need some libraries.
-- prampec/IotWebConf
 - NMEA2000
 - NMEA200_ESP
+- [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer)
+- [IotWebConf](https://github.com/minou65/IotWebConf)
+- [IotWebConfAsync](https://github.com/minou65/IotWebConfAsync)
+- [IotWebRoot](https://github.com/minou65/IotWebRoot)
 
 ## Gas / Smoke sensor
 Gas sensors play a vital role in various industries and applications, ensuring safety and enabling efficient monitoring of gas concentrations. Among the popular gas sensor modules available in the market, the MQ Gas Sensor Module Series stands out as a reliable and versatile option.

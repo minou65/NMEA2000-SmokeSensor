@@ -51,6 +51,7 @@ The device sends the following PGN's
 The Software has been created using Visual Studio with the addon Visual Micro. In order to build it you als need some libraries.
 - NMEA2000
 - NMEA200_ESP
+- [AsyncTCP](https://github.com/dvarrel/AsyncTCP)
 - [ESPAsyncWebServer](https://github.com/me-no-dev/ESPAsyncWebServer)
 - [IotWebConf](https://github.com/minou65/IotWebConf)
 - [IotWebConfAsync](https://github.com/minou65/IotWebConfAsync)

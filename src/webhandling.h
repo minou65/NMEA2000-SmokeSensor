@@ -26,7 +26,7 @@ const char thingName[] = "NMEA2000-SmokeSensor";
 const char wifiInitialApPassword[] = "123456789";
 
 // -- Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "A3"
+#define CONFIG_VERSION "A2"
 
 // -- When CONFIG_PIN is pulled to ground on startup, the Thing will use the initial
 //      password to buld an AP. (E.g. in case of lost password)
@@ -107,10 +107,10 @@ static char SensorTypeNames[][STRING_LEN] = {
 	"Flame"
 };
 
-class Sensor : public iotwebconf::ParameterGroup {
+class GasSensor : public iotwebconf::ParameterGroup {
 public:
 
-    Sensor(const char* id_, const char* lable_) : ParameterGroup(id_, lable_) {
+    GasSensor(const char* id_, const char* lable_) : ParameterGroup(id_, lable_) {
 
         snprintf(SensorTypeID, STRING_LEN, "%s-sensortype", this->getId());
         snprintf(thresholdId, STRING_LEN, "%s-threshold", this->getId());
@@ -136,18 +136,15 @@ public:
     iotwebconf::TextParameter LocationParam = iotwebconf::TextParameter("Location", locationId, locationValue, STRING_LEN, "Location");
     iotwebconf::TextParameter DescriptionParam = iotwebconf::TextParameter("Alert message", descriptionId, descriptionValue, STRING_LEN, "Alert");
 
-    void SetSensorValue(const double v) { 
-        value = v; 
-		Alert.TestAlertThreshold(v);
-    };
+    void SetSensorValue(const double v) { value = v; };
     double GetSensorValue() const { return value; };
     uint8_t GetThresholdMethod() const { return atoi(methodValue); };
     uint32_t GetThresholdValue() const { return atoi(thresholdValue); };
     char* GetSensorType() const { return SensorTypeNames[atoi(SensorTypeValue)]; };
 
 
-    void setNext(Sensor* nextGroup) { this->nextGroup = nextGroup; nextGroup->prevGroup = this; };
-    Sensor* getNext() { return this->nextGroup; };
+    void setNext(GasSensor* nextGroup) { this->nextGroup = nextGroup; nextGroup->prevGroup = this; };
+    GasSensor* getNext() { return this->nextGroup; };
 
     tN2kSyncScheduler AlarmScheduler = tN2kSyncScheduler(false, 500, 100);
     tN2kSyncScheduler TextAlarmScheduler = tN2kSyncScheduler(false, 10000, 2000);
@@ -160,8 +157,8 @@ public:
     char locationValue[STRING_LEN];
 
 protected:
-    Sensor* prevGroup = nullptr;
-    Sensor* nextGroup = nullptr;
+    GasSensor* prevGroup = nullptr;
+    GasSensor* nextGroup = nullptr;
 
 private:
 
@@ -175,8 +172,8 @@ private:
 	double value = 0;
 };
 
-extern Sensor Sensor1;
-extern Sensor Sensor2;
+extern GasSensor Sensor1;
+extern GasSensor Sensor2;
 
 #endif
 

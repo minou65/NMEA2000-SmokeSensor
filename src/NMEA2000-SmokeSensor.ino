@@ -14,17 +14,24 @@ char Version[] = "0.0.0.4 (2024-05-13)"; // Manufacturer's Software version code
 
 bool debugMode = true;
 
-#define SmokeSensorPin A0
-#define FalmeSensorPin A3
 
-uint32_t smokeSensorTreashold = 400;
-uint32_t flameSensorTreashold = 400;
+/*
+Since the ADC2 module is also used by the Wi - Fi, only one of them could get the preemption when using together, 
+which means the adc2_get_raw() may get blocked until Wi - Fi stops, and vice versa.
+
+That means you can't use the ADC on any of the ADC2 channels while WiFi is on: 
+	GPIO4, GPIO0, GPIO2, GPIO15, GPIO13, GPIO12, GPIO14, GPIO27, GPIO25 and GPIO26.
+
+But you can use ADC1, which uses pins 
+	GPIO36, GPIO37, GPIO38, GPIO39, GPIO32, GPIO33, GPIO34 and GPIO35.
+*/
+
+const uint8_t SensorPins[] = { GPIO_NUM_32, GPIO_NUM_33 };
 
 uint64_t DeviceId1 = 0;
 uint64_t DeviceId2 = 0;
 
-Neotimer smokeSensorTimer(500);
-Neotimer flameSensorTimer(500);
+Neotimer WriteOutputTimer(5000);
 
 uint8_t gN2KSource = 22;
 uint8_t gN2KInstance = 1;
@@ -41,10 +48,14 @@ const unsigned long AlarmDeviceDeviceMessages[] PROGMEM = {
 };
 
 void OnN2kOpen() {
-	// Start schedulers now.
-	smokeSensorTimer.start();
-	flameSensorTimer.start();
+	WriteOutputTimer.start();
 
+	Sensor* _sensor = &Sensor1;
+	while (_sensor != nullptr) {
+		_sensor->AlarmScheduler.UpdateNextTime();
+		_sensor->TextAlarmScheduler.UpdateNextTime();
+		_sensor = (Sensor*)_sensor->getNext();
+	}
 }
 
 void CheckN2kSourceAddressChange() {
@@ -55,21 +66,15 @@ void CheckN2kSourceAddressChange() {
 	}
 }
 
-// the setup function runs once when you press reset or power the board
 void setup() {
 	
 	Serial.begin(115200);
-
-	// wait for serial port to open on native usb devices
 	while (!Serial) {
 		delay(1);
 	}
 
 	InitDeviceId();
 	wifiinit();
-
-	pinMode(SmokeSensorPin, INPUT);
-	pinMode(FalmeSensorPin, INPUT);
 
 	NMEA2000.SetOnOpen(OnN2kOpen);
 
@@ -123,6 +128,7 @@ void setup() {
 	NMEA2000.Open();
 
 	InitAlertsystem();
+	WriteOutputTimer.start();
 }
 
 void InitDeviceId() {
@@ -143,7 +149,7 @@ void UpdateAlertSystem() {
 }
 
 void InitAlertsystem() {
-	GasSensor* _sensor = &Sensor1;
+	Sensor* _sensor = &Sensor1;
 	uint8_t _index = 0;
 	while (_sensor != nullptr) {
 		_sensor->Alert.SetAlertSystem(_index, gN2KInstance + _index, NMEA2000.GetN2kSource(), N2kts_AlertLanguageEnglishUS, _sensor->descriptionValue, _sensor->locationValue);
@@ -152,63 +158,57 @@ void InitAlertsystem() {
 		_sensor->Alert.SetAlertThreshold(t2kNAlertThresholdMethod(_sensor->GetThresholdMethod()), 0, _sensor->GetThresholdValue());
 
 		_index++;
-		_sensor = (GasSensor*)_sensor->getNext();
+		_sensor = (Sensor*)_sensor->getNext();
 	}
 }
 
 void SendAlarm() {
-	tN2kMsg N2kMsg;
+	tN2kMsg _N2kMsg;
 
-	GasSensor* _sensor = &Sensor1;
+	Sensor* _sensor = &Sensor1;
 	while (_sensor != nullptr) {
 		if (_sensor->AlarmScheduler.IsTime()) {
 			_sensor->AlarmScheduler.UpdateNextTime();
-			_sensor->Alert.SetN2kAlert(N2kMsg);
-			NMEA2000.SendMsg(N2kMsg);
+			_sensor->Alert.SetN2kAlert(_N2kMsg);
+			NMEA2000.SendMsg(_N2kMsg);
 		}
-		_sensor = (GasSensor*)_sensor->getNext();
+		_sensor = (Sensor*)_sensor->getNext();
 	}
 }
 
 void SendAlarmText() {
-	tN2kMsg N2kMsg;
+	tN2kMsg _N2kMsg;
 
-	GasSensor* _sensor = &Sensor1;
+	Sensor* _sensor = &Sensor1;
 	while (_sensor != nullptr) {
 		if (_sensor->TextAlarmScheduler.IsTime()) {
 			_sensor->TextAlarmScheduler.UpdateNextTime();
 
-			_sensor->Alert.SetN2kAlertText(N2kMsg);
-			NMEA2000.SendMsg(N2kMsg);
+			_sensor->Alert.SetN2kAlertText(_N2kMsg);
+			NMEA2000.SendMsg(_N2kMsg);
 		}
-		_sensor = (GasSensor*)_sensor->getNext();
+		_sensor = (Sensor*)_sensor->getNext();
 	}
 }
 
-// the loop function runs over and over again until power down or reset
 void loop() {
-	if (smokeSensorTimer.repeat()) {
-		uint32_t smokeSensorValue = analogRead(SmokeSensorPin);
+	Sensor* _sensor = &Sensor1;
+	uint8_t _i = 0;
 
-		DEBUG_PRINTF("Sensor 1 = %d\n", smokeSensorValue);
-		WebSerial.printf("Sensor 1 = %d\n", smokeSensorValue);
-		Sensor1.SetSensorValue(smokeSensorValue);
+	if (WriteOutputTimer.done()) {
+		while (_sensor != nullptr) {
+			_sensor->SetSensorValue(analogRead(SensorPins[_i]));
 
-		if (smokeSensorValue > smokeSensorTreashold) {
-			DEBUG_PRINTLN("Smoke detected!");
+			DEBUG_PRINTF("Sensor%d value = %s; threshold = %d\n", _i, String(_sensor->GetSensorValue(), 0), _sensor->GetThresholdValue());
+			WebSerial.printf("Sensor%d value = %s; threshold = %d\n", _i, String(_sensor->GetSensorValue(), 0), _sensor->GetThresholdValue());
+			if (_sensor->Alert.isAlert()) {
+				DEBUG_PRINTLN(_sensor->descriptionValue);
+				WebSerial.println(_sensor->descriptionValue);
+			}
+			_i++;
+			_sensor = (Sensor*)_sensor->getNext();
 		}
-	}
-
-	if (flameSensorTimer.repeat()) {
-		uint32_t flameSensorValue = analogRead(FalmeSensorPin);
-
-		DEBUG_PRINTF("Sensor 2 = %d\n", flameSensorValue);
-		WebSerial.printf("Sensor 2 = %d\n", flameSensorValue);
-		Sensor2.SetSensorValue(flameSensorValue);
-
-		if (flameSensorValue > flameSensorTreashold) {
-			DEBUG_PRINTLN("Flame detected!");
-		}
+		WriteOutputTimer.start();
 	}
 
 	SendAlarm();

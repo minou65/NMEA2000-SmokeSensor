@@ -44,8 +44,8 @@ AsyncUpdateServer AsyncUpdater;
 IotWebConf iotWebConf(thingName, &dnsServer, &asyncWebServerWrapper, wifiInitialApPassword, CONFIG_VERSION);
 
 NMEAConfig Config = NMEAConfig();
-GasSensor Sensor1 = GasSensor("Sensor1", "Sensor 1");
-GasSensor Sensor2 = GasSensor("Sensor2", "Sensor 2");
+Sensor Sensor1 = Sensor("Sensor1", "Sensor 1");
+Sensor Sensor2 = Sensor("Sensor2", "Sensor 2");
 
 class CustomHtmlFormatProvider : public iotwebconf::OptionalGroupHtmlFormatProvider {
 protected:
@@ -147,11 +147,11 @@ void handleData(AsyncWebServerRequest* request) {
     JsonVariant& json_ = response->getRoot();
 
 	json_["rssi"] = WiFi.RSSI();
-	GasSensor* sensor_ = &Sensor1;
+	Sensor* sensor_ = &Sensor1;
 	uint8_t i_ = 1;
     while (sensor_ != nullptr) {
 		json_["sensor" + String(i_)] = sensor_->GetSensorValue();
-		sensor_= (GasSensor*)sensor_->getNext();
+		sensor_= (Sensor*)sensor_->getNext();
 		i_++;
     }
 	response->setLength();
@@ -205,11 +205,11 @@ void handleRoot(AsyncWebServerRequest* request) {
 
 	content_ += fp_.getHtmlFieldset("Sensors").c_str();
 	content_ += fp_.getHtmlTable().c_str();
-	GasSensor* _sensor = &Sensor1;
+	Sensor* _sensor = &Sensor1;
 	uint8_t _i = 1;
     while (_sensor != nullptr) {
-		content_ += fp_.getHtmlTableRowSpan(_sensor->locationValue, "0", "sensor" + String(_i)).c_str();
-		_sensor = (GasSensor*)_sensor->getNext();
+		content_ += fp_.getHtmlTableRowSpan(_sensor->locationValue + String(":"), "0", "sensor" + String(_i)).c_str();
+		_sensor = (Sensor*)_sensor->getNext();
 		_i++;
     }
 

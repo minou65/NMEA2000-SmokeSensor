@@ -45,7 +45,8 @@ Every effort should be made to prevent a fire from starting.
 The device sends the following PGN's
 - 126983, // Alert
 - 126984, // Alert response
-- 126985, // Alert text
+- 126985, // Alert text 
+- 
 
 ## Librarys
 The Software has been created using Visual Studio with the addon Visual Micro. In order to build it you als need some libraries.

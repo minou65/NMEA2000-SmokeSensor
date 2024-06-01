@@ -9,8 +9,9 @@
 #include "common.h"
 #include "webhandling.h"
 #include "neotimer.h"
+#include "version.h"
 
-char Version[] = "0.0.0.4 (2024-05-13)"; // Manufacturer's Software version code
+char Version[] = VERSION; // Manufacturer's Software version code
 
 bool debugMode = true;
 
@@ -72,6 +73,7 @@ void setup() {
 	while (!Serial) {
 		delay(1);
 	}
+	Serial.println("NMEA2000-SmokeSensor v" + String(Version) + " started");
 
 	InitDeviceId();
 	wifiinit();

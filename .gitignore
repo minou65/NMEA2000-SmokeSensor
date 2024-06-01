@@ -408,3 +408,4 @@ sch/.s#*
 sch/.b#*
 /img/Thumbs.db
 src/NMEA2000-SmokeSensor.ino.nodemcu-32s.bin
+src/board.txt

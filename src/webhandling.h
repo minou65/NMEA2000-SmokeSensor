@@ -110,7 +110,7 @@ static char SensorTypeNames[][STRING_LEN] = {
 class Sensor : public iotwebconf::ParameterGroup {
 public:
 
-    Sensor(const char* id_, const char* lable_) : ParameterGroup(id_, lable_) {
+    Sensor(const char* id, const char* lable) : ParameterGroup(id, lable) {
 
         snprintf(SensorTypeID, STRING_LEN, "%s-sensortype", this->getId());
         snprintf(thresholdId, STRING_LEN, "%s-threshold", this->getId());

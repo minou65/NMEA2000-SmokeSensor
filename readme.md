@@ -36,6 +36,12 @@
 This smoke and flame sensor is capable of detecting and measuring smoke and fire. Fire is detected on infrared elvel emited from the flames. Depending on the gas sensor used, different gases can be detected for more information see [Gas / Smoke sensor](#gas--smoke-sensor)
 
 ## Disclamier
+ | | |
+ |-|-----------------|
+ | <img src="img/warning.png" width="100" alt="warning"> | This device does not replace a professional device in any way. In particular, I decline any guarantee or liability should an accident or damage occur!
+Every effort should be made to prevent a fire from starting. |
+ | <img src="img/warning.png" width="100" alt="warning"> | The sensors require a lot of energy for heating. The Vin pin may not provide enough voltage to operate the sensor. |
+
 
 This device does not replace a professional device in any way. In particular, I decline any guarantee or liability should an accident or damage occur!
 Every effort should be made to prevent a fire from starting.
@@ -61,14 +67,15 @@ The Software has been created using Visual Studio with the addon Visual Micro. I
 ## Gas / Smoke sensor
 Gas sensors play a vital role in various industries and applications, ensuring safety and enabling efficient monitoring of gas concentrations. Among the popular gas sensor modules available in the market, the MQ Gas Sensor Module Series stands out as a reliable and versatile option.
 
-[!WARNING]
-The sensors require a lot of energy for heating. The Vin pin may not provide enough voltage to operate the sensor. 
-
 ### MQ-2 Gas Sensor Module:
 The MQ-2 gas sensor module is primarily designed for detecting and measuring LPG, propane, butane, methane, alcohol, hydrogen, and smoke concentrations in the air.
 
+<img src="img/mq2-sensor.png" width="300" alt="mq-2 sensor">
+
 ### MQ-3 Gas Sensor Module:
 The MQ-3 module is suitable for detecting Alcohol, Benzine, CH4, Hexane, LPG, CO
+
+<img src="img/mq3-sensor.png" width="300" alt="mq-2 sensor">
 
 ### MQ-7 Carbon Monoxide (CO) Gas Sensor Module:
 The MQ-7 gas sensor module is specifically designed for detecting and monitoring carbon monoxide (CO) gas concentrations. 
@@ -78,6 +85,8 @@ The MQ-9 gas sensor module combines the ability to detect carbon monoxide (CO) a
 
 ## Flame sensor
 4 Pin Flame Sensor Module 3.3V-5V Infrared Receiving Module for Arduino DIY Kit
+
+<img src="img/flame-sensor.png" width="300" alt="mq-2 sensor">
 
 ## Settings
 

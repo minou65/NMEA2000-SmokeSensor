@@ -15,7 +15,6 @@ char Version[] = VERSION; // Manufacturer's Software version code
 
 bool debugMode = true;
 
-
 /*
 Since the ADC2 module is also used by the Wi - Fi, only one of them could get the preemption when using together, 
 which means the adc2_get_raw() may get blocked until Wi - Fi stops, and vice versa.
@@ -134,15 +133,15 @@ void setup() {
 }
 
 void InitDeviceId() {
-	uint8_t chipid[6];
-	int i = 0;
+	uint8_t _chipid[6];
+	int _i = 0;
 
 	// Generate unique numbers from chip id
-	esp_efuse_mac_get_default(chipid);
+	esp_efuse_mac_get_default(_chipid);
 
-	for (int i = 0; i < 6; i++) {
-		DeviceId1 += (chipid[i] << (7 * i));
-		DeviceId2 += (chipid[i] << (8 * i)); // 8*i statt 7*i
+	for (int _i = 0; _i < 6; _i++) {
+		DeviceId1 += (_chipid[_i] << (7 * _i));
+		DeviceId2 += (_chipid[_i] << (8 * _i)); // 8*_i statt 7*_i
 	}
 }
 

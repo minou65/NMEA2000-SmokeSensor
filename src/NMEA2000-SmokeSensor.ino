@@ -3,6 +3,7 @@
 #define ESP32_CAN_TX_PIN GPIO_NUM_5  // Set CAN TX port to D5 
 #define ESP32_CAN_RX_PIN GPIO_NUM_4  // Set CAN RX port to D4
 
+#include <esp_task_wdt.h>
 #include <N2kMessages.h>
 #include <NMEA2000_CAN.h>
 
@@ -11,9 +12,13 @@
 #include "neotimer.h"
 #include "version.h"
 
-char Version[] = VERSION; // Manufacturer's Software version code
+char Version[] = VERSION_STR; // Manufacturer's Software version code
+
+#define WDT_TIMEOUT 5
 
 bool debugMode = true;
+
+Neotimer WDtimer = Neotimer((WDT_TIMEOUT + 1) * 1000);
 
 /*
 Since the ADC2 module is also used by the Wi - Fi, only one of them could get the preemption when using together, 
@@ -130,6 +135,12 @@ void setup() {
 
 	InitAlertsystem();
 	WriteOutputTimer.start();
+
+
+	esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
+	esp_task_wdt_add(NULL); //add current thread to WDT watch
+
+	WDtimer.start();
 }
 
 void InitDeviceId() {
@@ -223,5 +234,9 @@ void loop() {
 	// Dummy to empty input buffer to avoid board to stuck with e.g. NMEA Reader
 	if (Serial.available()) {
 		Serial.read();
+	}
+
+	if (WDtimer.repeat()) {
+		esp_task_wdt_reset();
 	}
 }

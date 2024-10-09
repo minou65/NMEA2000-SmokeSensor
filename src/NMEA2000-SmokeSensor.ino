@@ -82,12 +82,12 @@ void setup() {
 	InitDeviceId();
 	wifiinit();
 
-	NMEA2000.SetOnOpen(OnN2kOpen);
-
 	// Reserve enough buffer for sending all messages. This does not work on small memory devices like Uno or Mega
 	NMEA2000.SetN2kCANMsgBufSize(8);
-	NMEA2000.SetN2kCANReceiveFrameBufSize(150);
-	NMEA2000.SetN2kCANSendFrameBufSize(150);
+	NMEA2000.SetN2kCANReceiveFrameBufSize(250);
+	NMEA2000.SetN2kCANSendFrameBufSize(250);
+
+	NMEA2000.SetOnOpen(OnN2kOpen);
 
 	// Set Product information
 	NMEA2000.SetProductInformation(

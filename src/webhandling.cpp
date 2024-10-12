@@ -121,6 +121,12 @@ void wifiloop() {
       iotWebConf.saveConfig();
       gSaveParams = false;
   }
+
+  if (AsyncUpdater.isFinished()) {
+      Serial.println(F("Firmware update finished"));
+      delay(1000);
+      ESP.restart();
+  }
 }
 
 void wifiConnected() {
